@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sentinel-2 ประเทศไทย 2026-01-01 – 2026-07-14 (Median ปลอดเมฆ)</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  html, body { margin: 0; height: 100%; }
+  #map { height: 100%; }
+  .info-box {
+    padding: 8px 12px; background: rgba(255,255,255,.9);
+    border-radius: 6px; box-shadow: 0 1px 5px rgba(0,0,0,.3);
+    font: 14px/1.4 sans-serif;
+  }
+  .info-box input[type=range] { width: 160px; vertical-align: middle; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<script>
+var map = L.map('map');
+
+// Google Maps tile layers
+var gSat = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+  maxZoom: 20, attribution: '&copy; Google Maps'
+});
+var gHybrid = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+  maxZoom: 20, attribution: '&copy; Google Maps'
+});
+var gRoad = L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+  maxZoom: 20, attribution: '&copy; Google Maps'
+});
+gSat.addTo(map);
+
+// Sentinel-2 median composite จาก Google Earth Engine
+var s2 = L.tileLayer('https://earthengine.googleapis.com/v1/projects/ee-aum121236/maps/d1a1ce99d885c24537f7939d995899d4-e128ef2c23b5b43074d255bebfa580af/tiles/{z}/{x}/{y}', {
+  maxZoom: 20, opacity: 1.0,
+  attribution: 'Sentinel-2 / Copernicus &mdash; Google Earth Engine'
+}).addTo(map);
+
+map.fitBounds([[5.61, 97.34], [20.47, 105.64]]);   // ขอบเขตประเทศไทย
+
+L.control.layers(
+  { 'Google ดาวเทียม': gSat, 'Google ผสม (Hybrid)': gHybrid, 'Google แผนที่ถนน': gRoad },
+  { 'Sentinel-2 สีผสมจริง': s2 }
+).addTo(map);
+
+L.control.scale({ metric: true, imperial: false }).addTo(map);
+
+// แถบปรับความโปร่งใสของภาพ Sentinel-2 เพื่อเทียบกับพื้นหลัง Google
+var opacityBox = L.control({ position: 'topright' });
+opacityBox.onAdd = function () {
+  var div = L.DomUtil.create('div', 'info-box');
+  div.innerHTML =
+    'ความทึบ Sentinel-2: <span id="opv">100%</span><br>' +
+    '<input id="op" type="range" min="0" max="100" value="100">';
+  L.DomEvent.disableClickPropagation(div);
+  return div;
+};
+opacityBox.addTo(map);
+document.getElementById('op').addEventListener('input', function (e) {
+  var v = e.target.value;
+  s2.setOpacity(v / 100);
+  document.getElementById('opv').textContent = v + '%';
+});
+
+// กล่องแสดงพิกัดตามเมาส์
+var coordBox = L.control({ position: 'bottomleft' });
+coordBox.onAdd = function () {
+  this._div = L.DomUtil.create('div', 'info-box');
+  this._div.innerHTML = 'เลื่อนเมาส์เพื่อดูพิกัด';
+  return this._div;
+};
+coordBox.addTo(map);
+map.on('mousemove', function (e) {
+  coordBox._div.innerHTML = 'Lat: ' + e.latlng.lat.toFixed(5) + ' , Lon: ' + e.latlng.lng.toFixed(5);
+});
+
+// กล่องข้อมูลภาพ
+var infoBox = L.control({ position: 'bottomright' });
+infoBox.onAdd = function () {
+  var div = L.DomUtil.create('div', 'info-box');
+  div.innerHTML =
+    '<b>Sentinel-2 SR Harmonized</b><br>' +
+    'ช่วงเวลา: 2026-01-01 ถึง 2026-07-14<br>' +
+    'Median ปลอดเมฆ (Cloud Score+ &ge; 0.6)<br>' +
+    'จำนวนภาพ: 6,596 scene<br>' +
+    '<small>สร้างเมื่อ 2026-07-14 14:14 &middot; tile หมดอายุใน ~3 วัน</small>';
+  return div;
+};
+infoBox.addTo(map);
+</script>
+</body>
+</html>
