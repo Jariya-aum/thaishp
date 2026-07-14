@@ -1,0 +1,10 @@
+env/
+__pycache__/
+*.pyc
+*.pyo
+
+.vscode/
+.ipynb_checkpoints/
+
+*.tif.aux.xml
+*.ovr
